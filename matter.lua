@@ -1,3 +1,7 @@
+local version_str = string.match(_VERSION, "%d+[.]%d*")
+local version_num = version_str and tonumber(version_str) or 5.1
+local bit = (version_num >= 5.2) and require("bit32") or require("bit")
+
 
 proto_matter_ble = Proto("MATTER_BLE", "matter protocol over ble")
 
@@ -54,10 +58,10 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
 
     local btp_flags_value = tvb(offset, 1):uint()
     offset = offset + 1
-    if btp_flags_value == 0x65 then -- btp handshark
+    if btp_flags_value == 0x65 then -- btp handshark PDU
         st:add(f_btp_opcode, tvb(offset, 1))
         offset = offset + 1
-        if tvb_len == 0x09 then -- btp handshark req
+        if tvb_len == 9 then -- btp handshark req
             pinfo.cols.info:append(" -- BTP handshark request")
             st:add(f_btp_ver, tvb(offset, 4))
             offset = offset + 4
@@ -65,7 +69,7 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
             offset = offset + 2
             st:add_le(f_btp_cWinSize, tvb(offset, 1))
             offset = offset + 1
-        elseif tvb_len == 0x06 then -- btp handshark resp
+        elseif tvb_len == 6 then -- btp handshark resp
             pinfo.cols.info:append(" -- BTP handshark response")
             local st_btp_fVer = st:add(proto_matter_ble, tvb(offset, 1), "Version")
             st_btp_fVer:add(f_btp_reserve, tvb(offset, 1))
@@ -76,6 +80,23 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
             st:add_le(f_btp_sWinSize, tvb(offset, 1))
             offset = offset + 1
         end
+    else -- btp data PDU
+        if bit.band(btp_flags_value, 0x08) == 0x08 then -- flags.A
+            st:add(f_btp_ack, tvb(offset, 1))
+            offset = offset + 1
+        end
+
+        st:add(f_btp_seq, tvb(offset, 1))
+        offset = offset + 1
+
+        if bit.band(btp_flags_value, 0x01) == 0x01 then -- -- flags.B
+            st:add_le(f_btp_len, tvb(offset, 2))
+            offset = offset + 2
+        end
+
+        if bit.band(btp_flags_value, 0x04) == 0x04 then -- -- flags.E
+            local st_btp_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload")
+        end        
     end
 end
 
