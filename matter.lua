@@ -198,6 +198,7 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
             local proto_header_exchange_flags_value = tvb(offset, 1):uint()
             offset = offset + 1
             st_frame_payload:add(f_proto_header_opcode, tvb(offset, 1))
+            local proto_header_opcode_value = tvb(offset, 1):uint()
             offset = offset + 1
             st_frame_payload:add_le(f_proto_header_exchange_id, tvb(offset, 2))
             offset = offset + 2
@@ -206,6 +207,7 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                 offset = offset + 2
             end
             st_frame_payload:add_le(f_proto_header_proto_id, tvb(offset, 2))
+            local proto_header_proto_id_value = tvb(offset, 2):le_uint()
             offset = offset + 2
             if bit.band(proto_header_exchange_flags_value, 0x02) == 0x02 then
                 st_frame_payload:add_le(f_proto_header_ack_cnt, tvb(offset, 4))
@@ -219,6 +221,23 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                 offset = offset + proto_se_ext_len
             end
             
+            if proto_header_proto_id_value == 0x0000 then
+                pinfo.cols.info:append(" -- SecureChannel:")
+                if proto_header_opcode_value == 0x20 then
+                    pinfo.cols.info:append("PBKDFParamRequest")
+                elseif proto_header_opcode_value == 0x21 then
+                    pinfo.cols.info:append("PBKDFParamResponse")
+                elseif proto_header_opcode_value == 0x22 then
+                    pinfo.cols.info:append("PASE_Pake1")
+                elseif proto_header_opcode_value == 0x23 then
+                    pinfo.cols.info:append("PASE_Pake2")
+                elseif proto_header_opcode_value == 0x24 then
+                    pinfo.cols.info:append("PASE_Pake3")
+                elseif proto_header_opcode_value == 0x40 then
+                    pinfo.cols.info:append("StatusReport")        
+                end
+            end
+
             local st_proto_app_payload = st_frame_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
         end
     end
