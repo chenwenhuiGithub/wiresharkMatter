@@ -36,7 +36,18 @@ f_frame_dstNodeId       = ProtoField.uint64("matter.frame.dnid", "Destination No
 f_frame_dstGroupId      = ProtoField.uint16("matter.frame.dgid", "Destination Group Id", base.HEX)
 f_frame_ext_len         = ProtoField.uint16("matter.frame.extLen", "Message Extensions Length", base.HEX)
 f_frame_ext_data        = ProtoField.bytes("matter.frame.extData", "Message Extensions Data")
-
+f_proto_header_exchange_flags_v   = ProtoField.uint8("matter.proto.header.exchange.flags.v", "V", base.HEX, Payload_type, 0x10)
+f_proto_header_exchange_flags_sx  = ProtoField.uint8("matter.proto.header.exchange.flags.sx", "SX", base.HEX, Payload_type, 0x08)
+f_proto_header_exchange_flags_r   = ProtoField.uint8("matter.proto.header.exchange.flags.r", "R", base.HEX, Payload_type, 0x04)
+f_proto_header_exchange_flags_a   = ProtoField.uint8("matter.proto.header.exchange.flags.a", "A", base.HEX, Payload_type, 0x02)
+f_proto_header_exchange_flags_i   = ProtoField.uint8("matter.proto.header.exchange.flags.i", "I", base.HEX, Payload_type, 0x01)
+f_proto_header_opcode             = ProtoField.uint8("matter.proto.header.opcode", "Protocol Opcode", base.HEX)
+f_proto_header_exchange_id        = ProtoField.uint16("matter.proto.header.exId", "Exchange Id", base.HEX)
+f_proto_header_proto_vid          = ProtoField.uint16("matter.proto.header.protovId", "Protocol Vendor Id", base.HEX)
+f_proto_header_proto_id           = ProtoField.uint16("matter.proto.header.protoId", "Protocol Id", base.HEX)
+f_proto_header_ack_cnt            = ProtoField.uint32("matter.proto.header.ackCnt", "Acknowledged Message Counter", base.HEX)
+f_proto_header_se_ext_len         = ProtoField.uint16("matter.proto.header.seLen", "Security Extensions Length", base.HEX)
+f_proto_header_se_ext_data        = ProtoField.bytes("matter.proto.header.seData", "Security Extensions Data")
 
 
 proto_matter_ble.fields = {
@@ -70,7 +81,19 @@ proto_matter_ble.fields = {
     f_frame_dstNodeId,
     f_frame_dstGroupId,
     f_frame_ext_len,
-    f_frame_ext_data
+    f_frame_ext_data,
+    f_proto_header_exchange_flags_v,
+    f_proto_header_exchange_flags_sx,
+    f_proto_header_exchange_flags_r,
+    f_proto_header_exchange_flags_a,
+    f_proto_header_exchange_flags_i,
+    f_proto_header_opcode,
+    f_proto_header_exchange_id,
+    f_proto_header_proto_vid,
+    f_proto_header_proto_id,
+    f_proto_header_ack_cnt,
+    f_proto_header_se_ext_len,
+    f_proto_header_se_ext_data
 }
 
 function proto_matter_ble.dissector(tvb, pinfo, tree)
@@ -163,7 +186,40 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                 offset = offset + 2
                 st_btp_segment_payload:add(f_frame_ext_data, tvb(offset, frame_ext_len))
                 offset = offset + frame_ext_len
-            end            
+            end
+
+            local st_frame_payload = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Message Payload")
+            local st_proto_header_exchange_flags = st_frame_payload:add(proto_matter_ble, tvb(offset, 1), "Exchange Flags")
+            st_proto_header_exchange_flags:add(f_proto_header_exchange_flags_v, tvb(offset, 1))
+            st_proto_header_exchange_flags:add(f_proto_header_exchange_flags_sx, tvb(offset, 1))
+            st_proto_header_exchange_flags:add(f_proto_header_exchange_flags_r, tvb(offset, 1))
+            st_proto_header_exchange_flags:add(f_proto_header_exchange_flags_a, tvb(offset, 1))
+            st_proto_header_exchange_flags:add(f_proto_header_exchange_flags_i, tvb(offset, 1))
+            local proto_header_exchange_flags_value = tvb(offset, 1):uint()
+            offset = offset + 1
+            st_frame_payload:add(f_proto_header_opcode, tvb(offset, 1))
+            offset = offset + 1
+            st_frame_payload:add_le(f_proto_header_exchange_id, tvb(offset, 2))
+            offset = offset + 2
+            if bit.band(proto_header_exchange_flags_value, 0x10) == 0x10 then
+                st_frame_payload:add_le(f_proto_header_proto_vid, tvb(offset, 2))
+                offset = offset + 2
+            end
+            st_frame_payload:add_le(f_proto_header_proto_id, tvb(offset, 2))
+            offset = offset + 2
+            if bit.band(proto_header_exchange_flags_value, 0x02) == 0x02 then
+                st_frame_payload:add_le(f_proto_header_ack_cnt, tvb(offset, 4))
+                offset = offset + 4
+            end
+            if bit.band(proto_header_exchange_flags_value, 0x08) == 0x08 then
+                local proto_se_ext_len = tvb(offset, 2):le_uint()
+                st_frame_payload:add(f_proto_header_se_ext_len, tvb(offset, 2))
+                offset = offset + 2
+                st_frame_payload:add(f_proto_header_se_ext_data, tvb(offset, proto_se_ext_len))
+                offset = offset + proto_se_ext_len
+            end
+            
+            local st_proto_app_payload = st_frame_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
         end
     end
 end
