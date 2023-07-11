@@ -303,5 +303,12 @@ end
 
 
 btatt_table = DissectorTable.get("btatt.handle")
-btatt_table:add(0x0012, proto_matter_ble) -- 0x0012(C1),0x0014(C2) TODO: how to get handle automatically?
+btatt_table:add(0x0012, proto_matter_ble) -- 0x0012(C1),0x0014(C2)
 btatt_table:add(0x0014, proto_matter_ble)
+
+-- TODO:
+-- 1. get att handles of characteristic C1,C2
+-- 2. add value description for enum fields
+-- 3. support PASE,CASE msg parse
+-- 4. support encrypt msg parse
+-- 5. support wifi link msg parse
