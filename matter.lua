@@ -99,6 +99,10 @@ f_pbkdfParamResp_iterCnt    = ProtoField.uint16("matter.pbkdfParamResp.count", "
 f_pbkdfParamResp_salt       = ProtoField.bytes("matter.pbkdfParamResp.salt", "salt")
 f_pbkdfParamResp_idle       = ProtoField.uint16("matter.pbkdfParamResp.idle", "sleepIdleInterval", base.HEX)
 f_pbkdfParamResp_active     = ProtoField.uint16("matter.pbkdfParamResp.active", "sleepActiveInterval", base.HEX)
+f_pase_pake1_pA             = ProtoField.bytes("matter.pase.pake1.pA", "pA")
+f_pase_pake2_pB             = ProtoField.bytes("matter.pase.pake2.pB", "pB")
+f_pase_pake2_cB             = ProtoField.bytes("matter.pase.pake2.cB", "cB")
+f_pase_pake3_cA             = ProtoField.bytes("matter.pase.pake3.cA", "cA")
 
 
 proto_matter_ble.fields = {
@@ -157,7 +161,11 @@ proto_matter_ble.fields = {
     f_pbkdfParamResp_iterCnt,
     f_pbkdfParamResp_salt,
     f_pbkdfParamResp_idle,
-    f_pbkdfParamResp_active
+    f_pbkdfParamResp_active,
+    f_pase_pake1_pA,
+    f_pase_pake2_pB,
+    f_pase_pake2_cB,
+    f_pase_pake3_cA
 }
 
 function proto_matter_ble.dissector(tvb, pinfo, tree)
@@ -359,10 +367,21 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                     end
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake1 then
                     pinfo.cols.info:prepend("[SecureChannel:PASE_Pake1] ")
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pase_pake1_pA, tvb(offset, 65))
+                    offset = offset + 65 + 1
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake2 then
                     pinfo.cols.info:prepend("[SecureChannel:PASE_Pake2] ")
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pase_pake2_pB, tvb(offset, 65))
+                    offset = offset + 68
+                    st_proto_app_payload:add(f_pase_pake2_cB, tvb(offset, 32))
+                    offset = offset + 32 + 1
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake3 then
                     pinfo.cols.info:prepend("[SecureChannel:PASE_Pake3] ")
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pase_pake3_cA, tvb(offset, 32))
+                    offset = offset + 32 + 1
                 elseif value_proto_opcode == PROTO_OPCODE_StatusReport then
                     pinfo.cols.info:prepend("[SecureChannel:StatusReport] ")        
                 end
@@ -379,6 +398,6 @@ btatt_table:add(0x0014, proto_matter_ble)
 -- TODO:
 -- 1. get att handles of characteristic C1,C2
 -- 2. add value description for enum fields
--- 3. support PASE,CASE msg parse
+-- 3. support CASE msg parse
 -- 4. support encrypt msg parse
 -- 5. support wifi link msg parse
