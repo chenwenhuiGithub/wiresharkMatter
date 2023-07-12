@@ -37,53 +37,68 @@ local PROTO_OPCODE_PASE_Pake2            = 0x23
 local PROTO_OPCODE_PASE_Pake3            = 0x24
 local PROTO_OPCODE_StatusReport          = 0x40
 
+local TLV_END_OF_CONTAINER               = 0x18
 
-proto_matter_ble = Proto("matter_ble", "matter protocol over ble")
+
+proto_matter_ble = Proto("matter", "matter protocol over ble")
 
 
-f_btp_flags_h           = ProtoField.uint8("matter.btp.flags.H", "H", base.HEX, Payload_type, MASK_BTP_FLAGS_H)
-f_btp_flags_m           = ProtoField.uint8("matter.btp.flags.M", "M", base.HEX, Payload_type, MASK_BTP_FLAGS_M)
-f_btp_flags_a           = ProtoField.uint8("matter.btp.flags.A", "A", base.HEX, Payload_type, MASK_BTP_FLAGS_A)
-f_btp_flags_e           = ProtoField.uint8("matter.btp.flags.E", "E", base.HEX, Payload_type, MASK_BTP_FLAGS_E)
-f_btp_flags_b           = ProtoField.uint8("matter.btp.flags.B", "B", base.HEX, Payload_type, MASK_BTP_FLAGS_B)
-f_btp_opcode            = ProtoField.uint8("matter.btp.opcode", "Management Opcode", base.HEX)
-f_btp_ack               = ProtoField.uint8("matter.btp.ack", "Ack Number", base.DEC)
-f_btp_seq               = ProtoField.uint8("matter.btp.seq", "Sequence Number", base.DEC)
-f_btp_len               = ProtoField.uint16("matter.btp.len", "Message Length", base.DEC)
-f_btp_ver               = ProtoField.bytes("matter.btp.ver", "Version")
-f_btp_rMtu              = ProtoField.uint16("matter.btp.rMtu", "Requested ATT_MTU", base.DEC)
-f_btp_cWinSize          = ProtoField.uint8("matter.btp.cWinSize", "Client Window Size", base.DEC)
-f_btp_reserve           = ProtoField.uint8("matter.btp.reserve", "Reserved", base.HEX, Payload_type, MASK_BTP_RESERVE)
-f_btp_fVer              = ProtoField.uint8("matter.btp.fVer", "Final Protocol Version", base.HEX, Payload_type, MASK_BTP_FINAL_VER)
-f_btp_sMtu              = ProtoField.uint16("matter.btp.sMtu", "Selected ATT_MTU", base.DEC)
-f_btp_sWinSize          = ProtoField.uint8("matter.btp.sWinSize", "Selected Window Size", base.DEC)
-f_frame_flags_ver       = ProtoField.uint8("matter.frame.flags.ver", "Version", base.HEX, Payload_type, MASK_FRAME_FLAGS_VER)
-f_frame_flags_s         = ProtoField.uint8("matter.frame.flags.s", "S", base.HEX, Payload_type, MASK_FRAME_FLAGS_S)
-f_frame_flags_dsiz      = ProtoField.uint8("matter.frame.flags.dsiz", "DSIZ", base.HEX, Payload_type, MASK_FRAME_FLAGS_DSIZ)
-f_frame_sId             = ProtoField.uint16("matter.frame.sId", "Session Id", base.HEX)
-f_frame_flags_p         = ProtoField.uint8("matter.frame.flags.p", "P", base.HEX, Payload_type, MASK_FRAME_FLAGS_P)
-f_frame_flags_c         = ProtoField.uint8("matter.frame.flags.c", "C", base.HEX, Payload_type, MASK_FRAME_FLAGS_C)
-f_frame_flags_mx        = ProtoField.uint8("matter.frame.flags.mx", "MX", base.HEX, Payload_type, MASK_FRAME_FLAGS_MX)
-f_frame_flags_reserve   = ProtoField.uint8("matter.frame.flags.reserve", "Reserved", base.HEX, Payload_type, MASK_FRAME_FLAGS_RESERVE)
-f_frame_flags_st        = ProtoField.uint8("matter.frame.flags.st", "Session Type", base.HEX, Payload_type, MASK_FRAME_FLAGS_ST)
-f_frame_cnt             = ProtoField.uint32("matter.frame.cnt", "Message Counter", base.DEC)
-f_frame_sNodeId         = ProtoField.uint64("matter.frame.snid", "Source Node Id", base.HEX)
-f_frame_dNodeId         = ProtoField.uint64("matter.frame.dnid", "Destination Node Id", base.HEX)
-f_frame_dGroupId        = ProtoField.uint16("matter.frame.dgid", "Destination Group Id", base.HEX)
-f_frame_extLen          = ProtoField.uint16("matter.frame.extLen", "Message Extensions Length", base.HEX)
-f_frame_extData         = ProtoField.bytes("matter.frame.extData", "Message Extensions Data")
-f_proto_flags_v         = ProtoField.uint8("matter.proto.flags.v", "V", base.HEX, Payload_type, MASK_PROTO_FLAGS_V)
-f_proto_flags_sx        = ProtoField.uint8("matter.proto.flags.sx", "SX", base.HEX, Payload_type, MASK_PROTO_FLAGS_SX)
-f_proto_flags_r         = ProtoField.uint8("matter.proto.flags.r", "R", base.HEX, Payload_type, MASK_PROTO_FLAGS_R)
-f_proto_flags_a         = ProtoField.uint8("matter.proto.flags.a", "A", base.HEX, Payload_type, MASK_PROTO_FLAGS_A)
-f_proto_flags_i         = ProtoField.uint8("matter.proto.flags.i", "I", base.HEX, Payload_type, MASK_PROTO_FLAGS_I)
-f_proto_opcode          = ProtoField.uint8("matter.proto.opcode", "Protocol Opcode", base.HEX)
-f_proto_ecId            = ProtoField.uint16("matter.proto.ecId", "Exchange Id", base.HEX)
-f_proto_pvId            = ProtoField.uint16("matter.proto.pvId", "Protocol Vendor Id", base.HEX)
-f_proto_pId             = ProtoField.uint16("matter.proto.pId", "Protocol Id", base.HEX)
-f_proto_ackCnt          = ProtoField.uint32("matter.proto.ackCnt", "Acknowledged Message Counter", base.HEX)
-f_proto_extLen          = ProtoField.uint16("matter.proto.extLen", "Security Extensions Length", base.HEX)
-f_proto_extData         = ProtoField.bytes("matter.proto.extData", "Security Extensions Data")
+f_btp_flags_h               = ProtoField.uint8("matter.btp.flags.H", "H", base.HEX, Payload_type, MASK_BTP_FLAGS_H)
+f_btp_flags_m               = ProtoField.uint8("matter.btp.flags.M", "M", base.HEX, Payload_type, MASK_BTP_FLAGS_M)
+f_btp_flags_a               = ProtoField.uint8("matter.btp.flags.A", "A", base.HEX, Payload_type, MASK_BTP_FLAGS_A)
+f_btp_flags_e               = ProtoField.uint8("matter.btp.flags.E", "E", base.HEX, Payload_type, MASK_BTP_FLAGS_E)
+f_btp_flags_b               = ProtoField.uint8("matter.btp.flags.B", "B", base.HEX, Payload_type, MASK_BTP_FLAGS_B)
+f_btp_opcode                = ProtoField.uint8("matter.btp.opcode", "Management Opcode", base.HEX)
+f_btp_ack                   = ProtoField.uint8("matter.btp.ack", "Ack Number", base.DEC)
+f_btp_seq                   = ProtoField.uint8("matter.btp.seq", "Sequence Number", base.DEC)
+f_btp_len                   = ProtoField.uint16("matter.btp.len", "Message Length", base.DEC)
+f_btp_ver                   = ProtoField.bytes("matter.btp.ver", "Version")
+f_btp_rMtu                  = ProtoField.uint16("matter.btp.rMtu", "Requested ATT_MTU", base.DEC)
+f_btp_cWinSize              = ProtoField.uint8("matter.btp.cWinSize", "Client Window Size", base.DEC)
+f_btp_reserve               = ProtoField.uint8("matter.btp.reserve", "Reserved", base.HEX, Payload_type, MASK_BTP_RESERVE)
+f_btp_fVer                  = ProtoField.uint8("matter.btp.fVer", "Final Protocol Version", base.HEX, Payload_type, MASK_BTP_FINAL_VER)
+f_btp_sMtu                  = ProtoField.uint16("matter.btp.sMtu", "Selected ATT_MTU", base.DEC)
+f_btp_sWinSize              = ProtoField.uint8("matter.btp.sWinSize", "Selected Window Size", base.DEC)
+f_frame_flags_ver           = ProtoField.uint8("matter.frame.flags.ver", "Version", base.HEX, Payload_type, MASK_FRAME_FLAGS_VER)
+f_frame_flags_s             = ProtoField.uint8("matter.frame.flags.s", "S", base.HEX, Payload_type, MASK_FRAME_FLAGS_S)
+f_frame_flags_dsiz          = ProtoField.uint8("matter.frame.flags.dsiz", "DSIZ", base.HEX, Payload_type, MASK_FRAME_FLAGS_DSIZ)
+f_frame_sId                 = ProtoField.uint16("matter.frame.sId", "Session Id", base.HEX)
+f_frame_flags_p             = ProtoField.uint8("matter.frame.flags.p", "P", base.HEX, Payload_type, MASK_FRAME_FLAGS_P)
+f_frame_flags_c             = ProtoField.uint8("matter.frame.flags.c", "C", base.HEX, Payload_type, MASK_FRAME_FLAGS_C)
+f_frame_flags_mx            = ProtoField.uint8("matter.frame.flags.mx", "MX", base.HEX, Payload_type, MASK_FRAME_FLAGS_MX)
+f_frame_flags_reserve       = ProtoField.uint8("matter.frame.flags.reserve", "Reserved", base.HEX, Payload_type, MASK_FRAME_FLAGS_RESERVE)
+f_frame_flags_st            = ProtoField.uint8("matter.frame.flags.st", "Session Type", base.HEX, Payload_type, MASK_FRAME_FLAGS_ST)
+f_frame_cnt                 = ProtoField.uint32("matter.frame.cnt", "Message Counter", base.DEC)
+f_frame_sNodeId             = ProtoField.uint64("matter.frame.snid", "Source Node Id", base.HEX)
+f_frame_dNodeId             = ProtoField.uint64("matter.frame.dnid", "Destination Node Id", base.HEX)
+f_frame_dGroupId            = ProtoField.uint16("matter.frame.dgid", "Destination Group Id", base.HEX)
+f_frame_extLen              = ProtoField.uint16("matter.frame.extLen", "Message Extensions Length", base.HEX)
+f_frame_extData             = ProtoField.bytes("matter.frame.extData", "Message Extensions Data")
+f_proto_flags_v             = ProtoField.uint8("matter.proto.flags.v", "V", base.HEX, Payload_type, MASK_PROTO_FLAGS_V)
+f_proto_flags_sx            = ProtoField.uint8("matter.proto.flags.sx", "SX", base.HEX, Payload_type, MASK_PROTO_FLAGS_SX)
+f_proto_flags_r             = ProtoField.uint8("matter.proto.flags.r", "R", base.HEX, Payload_type, MASK_PROTO_FLAGS_R)
+f_proto_flags_a             = ProtoField.uint8("matter.proto.flags.a", "A", base.HEX, Payload_type, MASK_PROTO_FLAGS_A)
+f_proto_flags_i             = ProtoField.uint8("matter.proto.flags.i", "I", base.HEX, Payload_type, MASK_PROTO_FLAGS_I)
+f_proto_opcode              = ProtoField.uint8("matter.proto.opcode", "Protocol Opcode", base.HEX)
+f_proto_ecId                = ProtoField.uint16("matter.proto.ecId", "Exchange Id", base.HEX)
+f_proto_pvId                = ProtoField.uint16("matter.proto.pvId", "Protocol Vendor Id", base.HEX)
+f_proto_pId                 = ProtoField.uint16("matter.proto.pId", "Protocol Id", base.HEX)
+f_proto_ackCnt              = ProtoField.uint32("matter.proto.ackCnt", "Acknowledged Message Counter", base.HEX)
+f_proto_extLen              = ProtoField.uint16("matter.proto.extLen", "Security Extensions Length", base.HEX)
+f_proto_extData             = ProtoField.bytes("matter.proto.extData", "Security Extensions Data")
+f_pbkdfParamReq_iRand       = ProtoField.bytes("matter.pbkdfParamReq.iRand", "initiatorRandom")
+f_pbkdfParamReq_iSessId     = ProtoField.uint16("matter.pbkdfParamReq.iSessId", "initiatorSessionId", base.HEX)
+f_pbkdfParamReq_pCodeId     = ProtoField.uint8("matter.pbkdfParamReq.pCodeId", "passcodeId", base.HEX)
+f_pbkdfParamReq_hasParam    = ProtoField.uint8("matter.pbkdfParamReq.hasParam", "hasPBKDFParameters", base.HEX, {[0x28] = "False", [0x29] = "True"})
+f_pbkdfParamReq_idle        = ProtoField.uint16("matter.pbkdfParamReq.idle", "sleepIdleInterval", base.HEX)
+f_pbkdfParamReq_active      = ProtoField.uint16("matter.pbkdfParamReq.active", "sleepActiveInterval", base.HEX)
+f_pbkdfParamResp_iRand      = ProtoField.bytes("matter.pbkdfParamResp.iRand", "initiatorRandom")
+f_pbkdfParamResp_rRand      = ProtoField.bytes("matter.pbkdfParamResp.rRand", "responderRandom")
+f_pbkdfParamResp_rSessId    = ProtoField.uint16("matter.pbkdfParamResp.rSessId", "responderSessionId", base.HEX)
+f_pbkdfParamResp_iterCnt    = ProtoField.uint16("matter.pbkdfParamResp.count", "iterationCount", base.HEX)
+f_pbkdfParamResp_salt       = ProtoField.bytes("matter.pbkdfParamResp.salt", "salt")
+f_pbkdfParamResp_idle       = ProtoField.uint16("matter.pbkdfParamResp.idle", "sleepIdleInterval", base.HEX)
+f_pbkdfParamResp_active     = ProtoField.uint16("matter.pbkdfParamResp.active", "sleepActiveInterval", base.HEX)
 
 
 proto_matter_ble.fields = {
@@ -129,7 +144,20 @@ proto_matter_ble.fields = {
     f_proto_pId,
     f_proto_ackCnt,
     f_proto_extLen,
-    f_proto_extData
+    f_proto_extData,
+    f_pbkdfParamReq_iRand,
+    f_pbkdfParamReq_iSessId,
+    f_pbkdfParamReq_pCodeId,
+    f_pbkdfParamReq_hasParam,
+    f_pbkdfParamReq_idle,
+    f_pbkdfParamReq_active,
+    f_pbkdfParamResp_iRand,
+    f_pbkdfParamResp_rRand,
+    f_pbkdfParamResp_rSessId,
+    f_pbkdfParamResp_iterCnt,
+    f_pbkdfParamResp_salt,
+    f_pbkdfParamResp_idle,
+    f_pbkdfParamResp_active
 }
 
 function proto_matter_ble.dissector(tvb, pinfo, tree)
@@ -163,7 +191,6 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
         offset = offset + 1
         if tvb_len == 9 then
             pinfo.cols.info:prepend("[BTP handshark request] ")
-
             st:add(f_btp_ver, tvb(offset, 4))
             offset = offset + 4
             st:add_le(f_btp_rMtu, tvb(offset, 2))
@@ -172,7 +199,6 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
             offset = offset + 1
         elseif tvb_len == 6 then
             pinfo.cols.info:prepend("[BTP handshark response] ")
-
             local st_btp_fVer = st:add(proto_matter_ble, tvb(offset, 1), "Version")
             st_btp_fVer:add(f_btp_reserve, tvb(offset, 1))
             st_btp_fVer:add_le(f_btp_fVer, tvb(offset, 1))
@@ -280,9 +306,27 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                 offset = offset + value_proto_extLen
             end
 
+            local st_proto_app_payload = st_frame_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
             if value_proto_pid == PROTO_PID_SECURE_CHANNEL then
                 if value_proto_opcode == PROTO_OPCODE_PBKDFParamRequest then
-                    pinfo.cols.info:prepend("[SecureChannel:PBKDFParamRequest] ")
+                    pinfo.cols.info:prepend("[SecureChannel:PBKDFParamRequest] ") -- assume tag sorted
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pbkdfParamReq_iRand, tvb(offset, 32))
+                    offset = offset + 34
+                    st_proto_app_payload:add_le(f_pbkdfParamReq_iSessId, tvb(offset, 2))
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pbkdfParamReq_pCodeId, tvb(offset, 1))
+                    offset = offset + 1
+                    st_proto_app_payload:add(f_pbkdfParamReq_hasParam, tvb(offset, 1))
+                    offset = offset + 2
+                    if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
+                        local st_pbkdfParamReq_iSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "initiatorSEDParams")
+                        offset = offset + 4
+                        st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_idle, tvb(offset, 2))
+                        offset = offset + 4
+                        st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_active, tvb(offset, 2))
+                        offset = offset + 2
+                    end
                 elseif value_proto_opcode == PROTO_OPCODE_PBKDFParamResponse then
                     pinfo.cols.info:prepend("[SecureChannel:PBKDFParamResponse] ")
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake1 then
@@ -295,8 +339,6 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                     pinfo.cols.info:prepend("[SecureChannel:StatusReport] ")        
                 end
             end
-
-            local st_proto_app_payload = st_frame_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
         end
     end
 end
