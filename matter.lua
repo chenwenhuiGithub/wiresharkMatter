@@ -170,6 +170,7 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
     local value_proto_pid = 0
     local value_proto_opcode = 0
     local value_proto_extLen = 0
+    local value_pbkdfParam_salt_len = 0
 
     local tvb_len = tvb:len()
     if tvb_len < 6 then return end -- BTP handshark response(6B), BTP data(9B = BTP header(1B) + frame header(8B))
@@ -329,6 +330,33 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
                     end
                 elseif value_proto_opcode == PROTO_OPCODE_PBKDFParamResponse then
                     pinfo.cols.info:prepend("[SecureChannel:PBKDFParamResponse] ")
+                    offset = offset + 4
+                    st_proto_app_payload:add(f_pbkdfParamResp_iRand, tvb(offset, 32))
+                    offset = offset + 35
+                    st_proto_app_payload:add(f_pbkdfParamResp_rRand, tvb(offset, 32))
+                    offset = offset + 34
+                    st_proto_app_payload:add_le(f_pbkdfParamResp_rSessId, tvb(offset, 2))
+                    offset = offset + 2
+                    if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
+                        if tvb(offset + 1, 1):uint() == 4 then -- pbkdf_parameters exist
+                            value_pbkdfParam_salt_len = tvb(offset + 8, 1):uint()
+                            local st_pbkdfParamResp_param = st_proto_app_payload:add(proto_matter_ble, tvb(offset, value_pbkdfParam_salt_len + 10), "pbkdf_parameters")
+                            offset = offset + 4
+                            st_pbkdfParamResp_param:add_le(f_pbkdfParamResp_iterCnt, tvb(offset, 2))
+                            offset = offset + 5
+                            st_pbkdfParamResp_param:add(f_pbkdfParamResp_salt, tvb(offset, value_pbkdfParam_salt_len))
+                            offset = offset + value_pbkdfParam_salt_len + 1
+                        end
+
+                        if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then -- responderSEDParams exist
+                            local st_pbkdfParamResp_rSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "responderSEDParams")
+                            offset = offset + 4
+                            st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_idle, tvb(offset, 2))
+                            offset = offset + 4
+                            st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_active, tvb(offset, 2))
+                            offset = offset + 2
+                        end
+                    end
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake1 then
                     pinfo.cols.info:prepend("[SecureChannel:PASE_Pake1] ")
                 elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake2 then
