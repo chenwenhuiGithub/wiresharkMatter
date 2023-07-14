@@ -49,22 +49,22 @@ local BLE_ATT_OPCODE_INDICATION             = 0x1d
 
 
 local vs_btp_flags_h        = {[0] = "Normal packet", [1] = "Handshake packet"}
-local vs_btp_flags_m        = {[0] = "Absence Management Opcode", [1] = "Presence Management Opcode"}
-local vs_btp_flags_a        = {[0] = "Absence Ack Number", [1] = "Presence Ack Number"}
-local vs_btp_flags_e        = {[0] = "Remaining segment", [1] = "Last segment"}
-local vs_btp_flags_b        = {[0] = "Remaining segment", [1] = "First segment"}
+local vs_btp_flags_m        = {[0] = "Management Opcode:Absence", [1] = "Management Opcode:Presence"}
+local vs_btp_flags_a        = {[0] = "Ack Number:Absence", [1] = "Ack Number:Presence"}
+local vs_btp_flags_e        = {[0] = "Last segment:Not", [1] = "Last segment:Yes"}
+local vs_btp_flags_b        = {[0] = "First segment:Not", [1] = "First segment:Yes"}
 local vs_btp_mOpcode        = {[PROTO_OPCODE_HANDSHARK] = "Handshake"}
-local vs_frame_flags_s      = {[0] = "Absence Source Node Id", [1] = "Presence Source Node Id"}
-local vs_frame_flags_dsiz   = {[0] = "Absence Destination Node Id", [1] = "Presence Destination Node Id(Node Id)", [2] = "Presence Destination Node Id(Group Id)"}
-local vs_frame_flags_p      = {[0] = "Not Privacy enhancement", [1] = "Privacy enhancement"}
-local vs_frame_flags_c      = {[0] = "Not Control message", [1] = "Control message"}
-local vs_frame_flags_mx     = {[0] = "Absence Message Extensions", [1] = "Presence Message Extensions"}
+local vs_frame_flags_s      = {[0] = "Source Node Id:Absence", [1] = "Source Node Id:Presence"}
+local vs_frame_flags_dsiz   = {[0] = "Destination Node Id:Absence", [1] = "Destination Node Id:Node Id", [2] = "Destination Node Id:Group Id"}
+local vs_frame_flags_p      = {[0] = "Privacy enhancement:Not", [1] = "Privacy enhancement:Yes"}
+local vs_frame_flags_c      = {[0] = "Control message:Not", [1] = "Control message:Yes"}
+local vs_frame_flags_mx     = {[0] = "Message Extensions:Absence", [1] = "Message Extensions:Presence"}
 local vs_frame_flags_st     = {[0] = "Unicast Session", [1] = "Group Session"}
-local vs_proto_flags_v      = {[0] = "Absence Protocol Vendor Id", [1] = "Presence Protocol Vendor Id"}
-local vs_proto_flags_sx     = {[0] = "Absence Security Extensions", [1] = "Presence Security Extensions"}
-local vs_proto_flags_r      = {[0] = "Not Wish ack", [1] = "Wish ack"}
-local vs_proto_flags_a      = {[0] = "Not Ack message", [1] = "Is Ack message"}
-local vs_proto_flags_i      = {[0] = "Not Initiator", [1] = "Is Initiator"}
+local vs_proto_flags_v      = {[0] = "Protocol Vendor Id:Absence", [1] = "Protocol Vendor Id:Presence"}
+local vs_proto_flags_sx     = {[0] = "Security Extensions:Absence", [1] = "Security Extensions:Presence"}
+local vs_proto_flags_r      = {[0] = "Wish ack:Not", [1] = "Wish ack:Yes"}
+local vs_proto_flags_a      = {[0] = "Ack message:Not", [1] = "Ack message:Yes"}
+local vs_proto_flags_i      = {[0] = "Initiator:Not", [1] = "Initiator:Yes"}
 local vs_proto_opcode       = {[PROTO_OPCODE_PBKDFParamRequest] = "PBKDFParamRequest",
                                [PROTO_OPCODE_PBKDFParamResponse] = "PBKDFParamResponse",
                                [PROTO_OPCODE_PASE_Pake1] = "PASE_Pake1",
