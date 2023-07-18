@@ -268,177 +268,173 @@ function proto_matter_ble.dissector(tvb, pinfo, tree)
             st:add(f_btp_seq, tvb(offset, 1))
             offset = offset + 1
 
-            if bit.band(value_btp_flags, MASK_BTP_FLAGS_B) ~= 0 then
+            if bit.band(value_btp_flags, MASK_BTP_FLAGS_B) ~= 0 then -- plaintext(PASE) no need sub segment, ciphertext(attention,noc,network) maybe need sub segment
                 st:add_le(f_btp_len, tvb(offset, 2))
                 offset = offset + 2
 
-                if bit.band(value_btp_flags, MASK_BTP_FLAGS_E) ~= 0 then
-                    local st_btp_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload")
-                    local st_frame_msg_flags = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, 1), "Message Flags")
-                    st_frame_msg_flags:add(f_frame_flags_ver, tvb(offset, 1))
-                    st_frame_msg_flags:add(f_frame_flags_s, tvb(offset, 1))
-                    st_frame_msg_flags:add(f_frame_flags_dsiz, tvb(offset, 1))
-                    value_frame_msg_flags = tvb(offset, 1):uint()
+                local st_btp_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload")
+                local st_frame_msg_flags = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, 1), "Message Flags")
+                st_frame_msg_flags:add(f_frame_flags_ver, tvb(offset, 1))
+                st_frame_msg_flags:add(f_frame_flags_s, tvb(offset, 1))
+                st_frame_msg_flags:add(f_frame_flags_dsiz, tvb(offset, 1))
+                value_frame_msg_flags = tvb(offset, 1):uint()
+                offset = offset + 1
+
+                st_btp_segment_payload:add_le(f_frame_sId, tvb(offset, 2))
+                value_frame_sessionId = tvb(offset, 2):le_uint()
+                offset = offset + 2
+
+                local st_frame_sec_flags = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, 1), "Security Flags")
+                st_frame_sec_flags:add(f_frame_flags_p, tvb(offset, 1))
+                st_frame_sec_flags:add(f_frame_flags_c, tvb(offset, 1))
+                st_frame_sec_flags:add(f_frame_flags_mx, tvb(offset, 1))
+                st_frame_sec_flags:add(f_frame_flags_reserve, tvb(offset, 1))
+                st_frame_sec_flags:add(f_frame_flags_st, tvb(offset, 1))
+                value_frame_sec_flags = tvb(offset, 1):uint()
+                offset = offset + 1
+
+                st_btp_segment_payload:add_le(f_frame_cnt, tvb(offset, 4))
+                offset = offset + 4
+
+                if bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_S) ~= 0 then
+                    st_btp_segment_payload:add(f_frame_sNodeId, tvb(offset, 8))
+                    offset = offset + 8
+                end
+
+                if bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_DSIZ) == 0x01 then
+                    st_btp_segment_payload:add(f_frame_dNodeId, tvb(offset, 8))
+                    offset = offset + 8                
+                elseif bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_DSIZ) == 0x02 then
+                    st_btp_segment_payload:add(f_frame_dGroupId, tvb(offset, 2))
+                    offset = offset + 2                 
+                end
+
+                if bit.band(value_frame_sec_flags, MASK_FRAME_FLAGS_MX) ~= 0 then
+                    value_frame_extLen = tvb(offset, 2):le_uint()
+                    st_btp_segment_payload:add_le(f_frame_extLen, tvb(offset, 2))
+                    offset = offset + 2
+                    st_btp_segment_payload:add(f_frame_extData, tvb(offset, value_frame_extLen))
+                    offset = offset + value_frame_extLen
+                end
+
+                if value_frame_sessionId == 0 and bit.band(value_frame_sec_flags, MASK_FRAME_FLAGS_ST) == 0 then -- plaintext message
+                    local st_frame_payload_plaintext = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Message Payload")
+                    local st_proto_header_exchange_flags = st_frame_payload_plaintext:add(proto_matter_ble, tvb(offset, 1), "Exchange Flags")
+                    st_proto_header_exchange_flags:add(f_proto_flags_v, tvb(offset, 1))
+                    st_proto_header_exchange_flags:add(f_proto_flags_sx, tvb(offset, 1))
+                    st_proto_header_exchange_flags:add(f_proto_flags_r, tvb(offset, 1))
+                    st_proto_header_exchange_flags:add(f_proto_flags_a, tvb(offset, 1))
+                    st_proto_header_exchange_flags:add(f_proto_flags_i, tvb(offset, 1))
+                    value_proto_flags = tvb(offset, 1):uint()
                     offset = offset + 1
 
-                    st_btp_segment_payload:add_le(f_frame_sId, tvb(offset, 2))
-                    value_frame_sessionId = tvb(offset, 2):le_uint()
+                    st_frame_payload_plaintext:add(f_proto_opcode, tvb(offset, 1))
+                    value_proto_opcode = tvb(offset, 1):uint()
+                    offset = offset + 1
+
+                    st_frame_payload_plaintext:add_le(f_proto_ecId, tvb(offset, 2))
                     offset = offset + 2
 
-                    local st_frame_sec_flags = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, 1), "Security Flags")
-                    st_frame_sec_flags:add(f_frame_flags_p, tvb(offset, 1))
-                    st_frame_sec_flags:add(f_frame_flags_c, tvb(offset, 1))
-                    st_frame_sec_flags:add(f_frame_flags_mx, tvb(offset, 1))
-                    st_frame_sec_flags:add(f_frame_flags_reserve, tvb(offset, 1))
-                    st_frame_sec_flags:add(f_frame_flags_st, tvb(offset, 1))
-                    value_frame_sec_flags = tvb(offset, 1):uint()
-                    offset = offset + 1
-
-                    st_btp_segment_payload:add_le(f_frame_cnt, tvb(offset, 4))
-                    offset = offset + 4
-
-                    if bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_S) ~= 0 then
-                        st_btp_segment_payload:add(f_frame_sNodeId, tvb(offset, 8))
-                        offset = offset + 8
+                    if bit.band(value_proto_flags, MASK_PROTO_FLAGS_V) ~= 0 then
+                        st_frame_payload_plaintext:add_le(f_proto_pvId, tvb(offset, 2))
+                        offset = offset + 2
                     end
 
-                    if bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_DSIZ) == 0x01 then
-                        st_btp_segment_payload:add(f_frame_dNodeId, tvb(offset, 8))
-                        offset = offset + 8                
-                    elseif bit.band(value_frame_msg_flags, MASK_FRAME_FLAGS_DSIZ) == 0x02 then
-                        st_btp_segment_payload:add(f_frame_dGroupId, tvb(offset, 2))
-                        offset = offset + 2                 
+                    st_frame_payload_plaintext:add_le(f_proto_pId, tvb(offset, 2))
+                    value_proto_pid = tvb(offset, 2):le_uint()
+                    offset = offset + 2
+
+                    if bit.band(value_proto_flags, MASK_PROTO_FLAGS_A) ~= 0 then
+                        st_frame_payload_plaintext:add_le(f_proto_ackCnt, tvb(offset, 4))
+                        offset = offset + 4
                     end
 
-                    if bit.band(value_frame_sec_flags, MASK_FRAME_FLAGS_MX) ~= 0 then
-                        value_frame_extLen = tvb(offset, 2):le_uint()
-                        st_btp_segment_payload:add_le(f_frame_extLen, tvb(offset, 2))
+                    if bit.band(value_proto_flags, MASK_PROTO_FLAGS_SX) ~= 0 then
+                        value_proto_extLen = tvb(offset, 2):le_uint()
+                        st_frame_payload_plaintext:add_le(f_proto_extLen, tvb(offset, 2))
                         offset = offset + 2
-                        st_btp_segment_payload:add(f_frame_extData, tvb(offset, value_frame_extLen))
-                        offset = offset + value_frame_extLen
+                        st_frame_payload_plaintext:add(f_proto_extData, tvb(offset, value_proto_extLen))
+                        offset = offset + value_proto_extLen
                     end
 
-                    if value_frame_sessionId == 0 and bit.band(value_frame_sec_flags, MASK_FRAME_FLAGS_ST) == 0 then -- plaintext message
-                        local st_frame_payload_plaintext = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Message Payload")
-                        local st_proto_header_exchange_flags = st_frame_payload_plaintext:add(proto_matter_ble, tvb(offset, 1), "Exchange Flags")
-                        st_proto_header_exchange_flags:add(f_proto_flags_v, tvb(offset, 1))
-                        st_proto_header_exchange_flags:add(f_proto_flags_sx, tvb(offset, 1))
-                        st_proto_header_exchange_flags:add(f_proto_flags_r, tvb(offset, 1))
-                        st_proto_header_exchange_flags:add(f_proto_flags_a, tvb(offset, 1))
-                        st_proto_header_exchange_flags:add(f_proto_flags_i, tvb(offset, 1))
-                        value_proto_flags = tvb(offset, 1):uint()
-                        offset = offset + 1
-
-                        st_frame_payload_plaintext:add(f_proto_opcode, tvb(offset, 1))
-                        value_proto_opcode = tvb(offset, 1):uint()
-                        offset = offset + 1
-
-                        st_frame_payload_plaintext:add_le(f_proto_ecId, tvb(offset, 2))
-                        offset = offset + 2
-
-                        if bit.band(value_proto_flags, MASK_PROTO_FLAGS_V) ~= 0 then
-                            st_frame_payload_plaintext:add_le(f_proto_pvId, tvb(offset, 2))
-                            offset = offset + 2
-                        end
-
-                        st_frame_payload_plaintext:add_le(f_proto_pId, tvb(offset, 2))
-                        value_proto_pid = tvb(offset, 2):le_uint()
-                        offset = offset + 2
-
-                        if bit.band(value_proto_flags, MASK_PROTO_FLAGS_A) ~= 0 then
-                            st_frame_payload_plaintext:add_le(f_proto_ackCnt, tvb(offset, 4))
+                    local st_proto_app_payload = st_frame_payload_plaintext:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
+                    if value_proto_pid == PROTO_PID_SECURE_CHANNEL then
+                        if value_proto_opcode == PROTO_OPCODE_PBKDFParamRequest then
+                            pinfo.cols.info:prepend("[SecureChannel:PBKDFParamRequest] ") -- assume tag value sorted
                             offset = offset + 4
-                        end
-
-                        if bit.band(value_proto_flags, MASK_PROTO_FLAGS_SX) ~= 0 then
-                            value_proto_extLen = tvb(offset, 2):le_uint()
-                            st_frame_payload_plaintext:add_le(f_proto_extLen, tvb(offset, 2))
+                            st_proto_app_payload:add(f_pbkdfParamReq_iRand, tvb(offset, 32))
+                            offset = offset + 34
+                            st_proto_app_payload:add_le(f_pbkdfParamReq_iSessId, tvb(offset, 2))
+                            offset = offset + 4
+                            st_proto_app_payload:add(f_pbkdfParamReq_pCodeId, tvb(offset, 1))
+                            offset = offset + 1
+                            st_proto_app_payload:add(f_pbkdfParamReq_hasParam, tvb(offset, 1))
                             offset = offset + 2
-                            st_frame_payload_plaintext:add(f_proto_extData, tvb(offset, value_proto_extLen))
-                            offset = offset + value_proto_extLen
-                        end
-
-                        local st_proto_app_payload = st_frame_payload_plaintext:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Application Payload")
-                        if value_proto_pid == PROTO_PID_SECURE_CHANNEL then
-                            if value_proto_opcode == PROTO_OPCODE_PBKDFParamRequest then
-                                pinfo.cols.info:prepend("[SecureChannel:PBKDFParamRequest] ") -- assume tag value sorted
+                            if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
+                                local st_pbkdfParamReq_iSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "initiatorSEDParams")
                                 offset = offset + 4
-                                st_proto_app_payload:add(f_pbkdfParamReq_iRand, tvb(offset, 32))
-                                offset = offset + 34
-                                st_proto_app_payload:add_le(f_pbkdfParamReq_iSessId, tvb(offset, 2))
+                                st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_idle, tvb(offset, 2))
                                 offset = offset + 4
-                                st_proto_app_payload:add(f_pbkdfParamReq_pCodeId, tvb(offset, 1))
-                                offset = offset + 1
-                                st_proto_app_payload:add(f_pbkdfParamReq_hasParam, tvb(offset, 1))
+                                st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_active, tvb(offset, 2))
                                 offset = offset + 2
-                                if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
-                                    local st_pbkdfParamReq_iSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "initiatorSEDParams")
+                            end
+                        elseif value_proto_opcode == PROTO_OPCODE_PBKDFParamResponse then
+                            pinfo.cols.info:prepend("[SecureChannel:PBKDFParamResponse] ")
+                            offset = offset + 4
+                            st_proto_app_payload:add(f_pbkdfParamResp_iRand, tvb(offset, 32))
+                            offset = offset + 35
+                            st_proto_app_payload:add(f_pbkdfParamResp_rRand, tvb(offset, 32))
+                            offset = offset + 34
+                            st_proto_app_payload:add_le(f_pbkdfParamResp_rSessId, tvb(offset, 2))
+                            offset = offset + 2
+                            if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
+                                if tvb(offset + 1, 1):uint() == 4 then -- pbkdf_parameters exist
+                                    value_pbkdfParam_salt_len = tvb(offset + 8, 1):uint()
+                                    local st_pbkdfParamResp_param = st_proto_app_payload:add(proto_matter_ble, tvb(offset, value_pbkdfParam_salt_len + 10), "pbkdf_parameters")
                                     offset = offset + 4
-                                    st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_idle, tvb(offset, 2))
+                                    st_pbkdfParamResp_param:add_le(f_pbkdfParamResp_iterCnt, tvb(offset, 2))
+                                    offset = offset + 5
+                                    st_pbkdfParamResp_param:add(f_pbkdfParamResp_salt, tvb(offset, value_pbkdfParam_salt_len))
+                                    offset = offset + value_pbkdfParam_salt_len + 1
+                                end
+
+                                if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then -- responderSEDParams exist
+                                    local st_pbkdfParamResp_rSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "responderSEDParams")
                                     offset = offset + 4
-                                    st_pbkdfParamReq_iSedParam:add_le(f_pbkdfParamReq_active, tvb(offset, 2))
+                                    st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_idle, tvb(offset, 2))
+                                    offset = offset + 4
+                                    st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_active, tvb(offset, 2))
                                     offset = offset + 2
                                 end
-                            elseif value_proto_opcode == PROTO_OPCODE_PBKDFParamResponse then
-                                pinfo.cols.info:prepend("[SecureChannel:PBKDFParamResponse] ")
-                                offset = offset + 4
-                                st_proto_app_payload:add(f_pbkdfParamResp_iRand, tvb(offset, 32))
-                                offset = offset + 35
-                                st_proto_app_payload:add(f_pbkdfParamResp_rRand, tvb(offset, 32))
-                                offset = offset + 34
-                                st_proto_app_payload:add_le(f_pbkdfParamResp_rSessId, tvb(offset, 2))
-                                offset = offset + 2
-                                if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then
-                                    if tvb(offset + 1, 1):uint() == 4 then -- pbkdf_parameters exist
-                                        value_pbkdfParam_salt_len = tvb(offset + 8, 1):uint()
-                                        local st_pbkdfParamResp_param = st_proto_app_payload:add(proto_matter_ble, tvb(offset, value_pbkdfParam_salt_len + 10), "pbkdf_parameters")
-                                        offset = offset + 4
-                                        st_pbkdfParamResp_param:add_le(f_pbkdfParamResp_iterCnt, tvb(offset, 2))
-                                        offset = offset + 5
-                                        st_pbkdfParamResp_param:add(f_pbkdfParamResp_salt, tvb(offset, value_pbkdfParam_salt_len))
-                                        offset = offset + value_pbkdfParam_salt_len + 1
-                                    end
-
-                                    if TLV_END_OF_CONTAINER ~= tvb(offset, 1):uint() then -- responderSEDParams exist
-                                        local st_pbkdfParamResp_rSedParam = st_proto_app_payload:add(proto_matter_ble, tvb(offset, 11), "responderSEDParams")
-                                        offset = offset + 4
-                                        st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_idle, tvb(offset, 2))
-                                        offset = offset + 4
-                                        st_pbkdfParamResp_rSedParam:add_le(f_pbkdfParamResp_active, tvb(offset, 2))
-                                        offset = offset + 2
-                                    end
-                                end
-                            elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake1 then
-                                pinfo.cols.info:prepend("[SecureChannel:PASE_Pake1] ")
-                                offset = offset + 4
-                                st_proto_app_payload:add(f_pase_pake1_pA, tvb(offset, 65))
-                                offset = offset + 65 + 1
-                            elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake2 then
-                                pinfo.cols.info:prepend("[SecureChannel:PASE_Pake2] ")
-                                offset = offset + 4
-                                st_proto_app_payload:add(f_pase_pake2_pB, tvb(offset, 65))
-                                offset = offset + 68
-                                st_proto_app_payload:add(f_pase_pake2_cB, tvb(offset, 32))
-                                offset = offset + 32 + 1
-                            elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake3 then
-                                pinfo.cols.info:prepend("[SecureChannel:PASE_Pake3] ")
-                                offset = offset + 4
-                                st_proto_app_payload:add(f_pase_pake3_cA, tvb(offset, 32))
-                                offset = offset + 32 + 1
-                            elseif value_proto_opcode == PROTO_OPCODE_StatusReport then
-                                pinfo.cols.info:prepend("[SecureChannel:StatusReport] ")
                             end
+                        elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake1 then
+                            pinfo.cols.info:prepend("[SecureChannel:PASE_Pake1] ")
+                            offset = offset + 4
+                            st_proto_app_payload:add(f_pase_pake1_pA, tvb(offset, 65))
+                            offset = offset + 65 + 1
+                        elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake2 then
+                            pinfo.cols.info:prepend("[SecureChannel:PASE_Pake2] ")
+                            offset = offset + 4
+                            st_proto_app_payload:add(f_pase_pake2_pB, tvb(offset, 65))
+                            offset = offset + 68
+                            st_proto_app_payload:add(f_pase_pake2_cB, tvb(offset, 32))
+                            offset = offset + 32 + 1
+                        elseif value_proto_opcode == PROTO_OPCODE_PASE_Pake3 then
+                            pinfo.cols.info:prepend("[SecureChannel:PASE_Pake3] ")
+                            offset = offset + 4
+                            st_proto_app_payload:add(f_pase_pake3_cA, tvb(offset, 32))
+                            offset = offset + 32 + 1
+                        elseif value_proto_opcode == PROTO_OPCODE_StatusReport then
+                            pinfo.cols.info:prepend("[SecureChannel:StatusReport] ")
                         end
-                    else -- ciphertext message
-                        local st_frame_payload_ciphertext = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Message Payload(Encryption)")
-                        pinfo.cols.info:prepend("[Encryption] ")
-                        -- TODO: decrypt
                     end
-                else -- sub segment
-                    local st_btp_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload(Sub segment)")
+                else -- ciphertext message
+                    local st_frame_payload_ciphertext = st_btp_segment_payload:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Message Payload(Encryption)")
+                    pinfo.cols.info:prepend("[Encryption] ")
                 end
-            else -- sub segment
-                local st_btp_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload(Sub segment)")
+            else -- continue sub segment
+                local st_btp_sub_segment_payload = st:add(proto_matter_ble, tvb(offset, tvb:len() - offset), "Segment Payload(Sub segment)")
+                pinfo.cols.info = "[Sub segment]"
             end
         end
     end
@@ -454,7 +450,6 @@ btatt_table:add(0x0004, proto_matter_ble) -- ble att cid
 
 
 -- TODO:
--- 1. support sub segments
--- 2. support parse CASE msg
--- 3. support parse encrypt msg
--- 4. support parse wifi link msg
+-- 1. support parse CASE msg
+-- 2. support parse encrypt msg
+-- 3. support parse wifi link msg
